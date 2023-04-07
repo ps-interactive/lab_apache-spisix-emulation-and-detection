@@ -237,6 +237,30 @@ EOF
   return 0;
 }
 
+function setupLearnerFiles() {
+  logDebug "Running ${FUNCNAME[0]}";
+  logDebug "Copying learner files";
+  test -d /home/pslearner || (logDebug "Missing home folder" && return 1);
+  logDebug "Creating symlink to commands and apache-files directory";
+  ln -s /opt/CVE-2022-24112-Lab/commands /home/pslearner/commands
+  ln -s /opt/CVE-2022-24112-Lab/apache-files /home/pslearner/apache-files
+  logDebug "Setting read-execute permissions";
+  chmod -R a+rx /home/pslearner/commands
+  chmod -R a+r /home/pslearner/apache-files
+  logDebug "Setting user and group ownership";
+  chown -R pslearner:pslearner /home/pslearner
+  logDebug "Enabling immutable bit for commands";
+  for _file in $(ls /home/pslearner/commands/*.sh); do
+    chattr +i ${_file};
+  done;
+  logDebug "Enabling immutable bit for apache-files";
+  for _file in $(ls /home/pslearner/apache-files/*.*); do
+    chattr +i ${_file};
+  done;
+  logDebug "${FUNCNAME[0]} complete";
+  return 0;
+}
+
 function runSetup() {
   logMessage "Running lab setup";
 
@@ -261,8 +285,17 @@ function runSetup() {
     return 1;
   fi;
 
+  logMessage "Setting up learner files";
+  if (! setupLearnerFiles); then
+    logMessage "Failed to setup learner files";
+    return 1;
+  fi;
+
   logMessage "Setup complete. Debug log located: ${_debug_logfile}";
-  touch /tmp/.setup-complete
+  touch /tmp/.setup-complete;
+  truncate -s0 ~/.bash_history;
+  truncate -s0 /home/ubuntu/.bash_history;
+  history -c;
   return 0;
 }
 
