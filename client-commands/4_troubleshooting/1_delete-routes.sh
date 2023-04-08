@@ -1,6 +1,3 @@
-#!/usr/bin/bash
-
-# clear existing routes
 curl -s -X 'POST' http://172.31.24.111/apisix/batch-requests -o- \
  -H 'Host: 127.0.0.1:9080' \
  -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' \
