@@ -27,14 +27,20 @@ function setupLearnerFiles() {
   logDebug "Running ${FUNCNAME[0]}";
   logDebug "Copying learner files";
   test -d /home/pslearner || (logDebug "Missing home folder" && return 1);
+
   logDebug "Creating symlink to commands directory";
-  ln -s /opt/CVE-2022-24112-Lab/commands /home/pslearner/commands
+  ln -s /opt/CVE-2022-24112-Lab/client-commands /home/pslearner/commands;
+  rm -rf /opt/CVE-2022-24112-Lab/server-commands;
+  rm -rf /opt/CVE-2022-24112-Lab/docker-files;
+  rm -rf /opt/CVE-2022-24112-Lab/apache-files;
+  rm /opt/CVE-2022-24112-Lab/setup.sh;
+
   logDebug "Setting read-execute permissions";
-  chmod -R a+rx /home/pslearner/commands
+  chmod -R a+rx /home/pslearner/commands;
   logDebug "Setting user and group ownership";
-  chown -R pslearner:pslearner /home/pslearner
+  chown -R pslearner:pslearner /home/pslearner;
   logDebug "Enabling immutable bit for commands";
-  for _file in $(ls /home/pslearner/commands/*.sh); do
+  for _file in $(find /home/pslearner/commands -type f -name "*.sh"); do
     chattr +i ${_file};
   done;
   logDebug "${FUNCNAME[0]} complete";
@@ -56,11 +62,12 @@ function runSetup() {
   fi;
 
   logMessage "Setup complete. Debug log located: ${_debug_logfile}";
-  touch /tmp/.setup-complete;
+  rm /opt/CVE-2022-24112-Lab/setup-learner.sh;
   truncate -s0 ~/.bash_history;
   truncate -s0 /home/ubuntu/.bash_history;
+  touch /tmp/.setup-complete;
   history -c;
   return 0;
 }
 
-runSetup ${1} >> ${_setup_logfile}
+test -f /tmp/.setup-complete || runSetup ${1} >> ${_setup_logfile};

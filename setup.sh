@@ -3,7 +3,6 @@ export _sites_enabled="/etc/apache2/sites-enabled";
 export _sites_available="/etc/apache2/sites-available";
 export _mods_enabled="/etc/apache2/mods-enabled";
 export _mods_available="/etc/apache2/mods-available";
-export _apt_manifest="/tmp/installed-packages.log";
 export _debug_logfile="/tmp/debug.log";
 export _setup_logfile="/tmp/setup.log";
 export SETUP_MODE="sandbox";
@@ -48,8 +47,6 @@ function initializeSetup()  {
 
   logDebug "Updating APT repository";
   apt update &>>${_debug_logfile};
-  logDebug "Generating list of packages";
-  apt list > ${_apt_manifest};
 
   logDebug "Installing test environment dependencies";
   for _dependency in ${_docker_repo_dependencies[@]}; do
@@ -57,7 +54,7 @@ function initializeSetup()  {
   done;
 
   logDebug "Adding Docker archive to sources";
-  if (! test -f "/usr/share/keyrings/docker-archive-keyring.gpg"); then
+  if (! test -f /usr/share/keyrings/docker-archive-keyring.gpg); then
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg|
       gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
       &>>${_debug_logfile};
@@ -241,20 +238,25 @@ function setupLearnerFiles() {
   logDebug "Running ${FUNCNAME[0]}";
   logDebug "Copying learner files";
   test -d /home/pslearner || (logDebug "Missing home folder" && return 1);
+
   logDebug "Creating symlink to commands and apache-files directory";
-  ln -s /opt/CVE-2022-24112-Lab/commands /home/pslearner/commands
-  ln -s /opt/CVE-2022-24112-Lab/apache-files /home/pslearner/apache-files
+  ln -s /opt/CVE-2022-24112-Lab/server-commands /home/pslearner/commands;
+  ln -s /opt/CVE-2022-24112-Lab/apache-files /home/pslearner/apache-files;
+  rm -rf /opt/CVE-2022-24112-Lab/client-commands;
+  rm /opt/CVE-2022-24112-Lab/setup-learner.sh;
+
   logDebug "Setting read-execute permissions";
-  chmod -R a+rx /home/pslearner/commands
-  chmod -R a+r /home/pslearner/apache-files
+  chmod -R a+rx /home/pslearner/commands;
+  chmod -R a+r /home/pslearner/apache-files;
+
   logDebug "Setting user and group ownership";
   chown -R pslearner:pslearner /home/pslearner
   logDebug "Enabling immutable bit for commands";
-  for _file in $(ls /home/pslearner/commands/*.sh); do
+  for _file in $(find /home/pslearner/commands -type f -name "*.sh"); do
     chattr +i ${_file};
   done;
   logDebug "Enabling immutable bit for apache-files";
-  for _file in $(ls /home/pslearner/apache-files/*.*); do
+  for _file in $(find /home/pslearner/apache-files -type f -name "*.conf"); do
     chattr +i ${_file};
   done;
   logDebug "${FUNCNAME[0]} complete";
@@ -292,11 +294,12 @@ function runSetup() {
   fi;
 
   logMessage "Setup complete. Debug log located: ${_debug_logfile}";
-  touch /tmp/.setup-complete;
+  rm /opt/CVE-2022-24112-Lab/setup.sh;
   truncate -s0 ~/.bash_history;
   truncate -s0 /home/ubuntu/.bash_history;
+  touch /tmp/.setup-complete;
   history -c;
   return 0;
 }
 
-runSetup ${1} >> ${_setup_logfile}
+test -f /tmp/.setup-complete || runSetup ${1} >> ${_setup_logfile};
